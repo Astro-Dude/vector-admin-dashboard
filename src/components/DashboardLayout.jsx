@@ -41,7 +41,7 @@ const DashboardLayout = () => {
       {/* Sidebar */}
       <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-10 lg:relative lg:translate-x-0 transition duration-300 transform bg-white border-r border-gray-200 w-64 space-y-6 py-7 px-2 lg:flex flex-col`}>
         <div className="px-4">
-          <h2 className="text-xl font-bold text-gray-800">Vector NSET Admin</h2>
+          <h2 className="text-xl font-bold text-gray-800">Vector Admin</h2>
         </div>
         
         <nav className="flex-1 space-y-1 px-2">
