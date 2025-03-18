@@ -1,0 +1,37 @@
+// Copy and paste these rules in your Firebase Console > Firestore Database > Rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Check if the user is the admin
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'vector.scalernset@gmail.com';
+    }
+    
+    // Allow admin to read and write all documents
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+    
+    // System config specifically for admin access
+    match /systemConfig/{configId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Users collection - additional specific rules
+    match /users/{userId} {
+      // Allow users to read/write their own documents
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow users to read/write their own purchases
+      match /purchases/{purchaseId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Allow admin to read all purchases using collectionGroup queries
+    match /{path=**}/purchases/{purchaseId} {
+      allow read: if isAdmin();
+    }
+  }
+} 
