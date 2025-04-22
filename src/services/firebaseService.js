@@ -11,7 +11,7 @@ import {
   orderBy, 
   collectionGroup 
 } from '../firebase';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, getAuth } from 'firebase/auth';
 import { Timestamp } from 'firebase/firestore';
 
 // Authentication functions
@@ -188,6 +188,8 @@ export const fetchTestResults = async (filters = {}) => {
       throw new Error("User not authenticated");
     }
     
+    console.log("Fetching test results with filters:", filters);
+    
     // Start with base query
     let constraints = [
       orderBy('timestamp', 'desc')
@@ -226,12 +228,96 @@ export const fetchTestResults = async (filters = {}) => {
     );
     
     const querySnapshot = await getDocs(testResultsQuery);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      // Convert Firestore timestamp to JS Date
-      timestamp: doc.data().timestamp ? doc.data().timestamp.toDate() : null
-    }));
+    console.log(`Found ${querySnapshot.docs.length} test results`);
+    
+    // First, gather all user IDs from test results
+    const userIds = new Set();
+    querySnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.userId) {
+        userIds.add(data.userId);
+      }
+    });
+    
+    console.log(`Found ${userIds.size} unique user IDs`);
+    
+    // Next, try to find user details in related collections
+    const userDetailsMap = {};
+    
+    // Check testAttempts collection - might have user info
+    try {
+      const testAttemptsQuery = query(collectionGroup(db, 'testAttempts'));
+      const attemptsSnapshot = await getDocs(testAttemptsQuery);
+      console.log(`Found ${attemptsSnapshot.docs.length} test attempts`);
+      
+      attemptsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const userId = data.userId || '';
+        
+        if (userId && userIds.has(userId)) {
+          if (!userDetailsMap[userId]) {
+            userDetailsMap[userId] = {
+              name: data.userName || data.studentName || data.displayName || data.name || 'Unknown',
+              email: data.userEmail || data.email || 'N/A',
+              phone: data.userPhone || data.phoneNumber || data.phone || 'N/A'
+            };
+            console.log(`Found user details in testAttempts for userId ${userId}:`, userDetailsMap[userId]);
+          }
+        }
+      });
+    } catch (err) {
+      console.log("Error checking testAttempts collection:", err);
+    }
+    
+    // Try to lookup each user in the users collection
+    for (const userId of userIds) {
+      if (!userDetailsMap[userId]) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', userId));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            userDetailsMap[userId] = {
+              name: userData.displayName || userData.name || 'Unknown',
+              email: userData.email || 'N/A',
+              phone: userData.phoneNumber || userData.phone || 'N/A'
+            };
+            console.log(`Found user details in users collection for userId ${userId}:`, userDetailsMap[userId]);
+          }
+        } catch (err) {
+          console.log(`Error looking up user ${userId} in users collection:`, err);
+        }
+      }
+    }
+    
+    // Process test results to include consistent userDetails
+    const resultsWithUserDetails = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      
+      // Get user information with priority:
+      // 1. Directly from test result fields
+      // 2. From userDetailsMap if we found user elsewhere
+      // 3. Default values
+      
+      const userId = data.userId || '';
+      const userDetails = {
+        name: data.displayName || data.userName || data.studentName || data.name || 
+              (userId && userDetailsMap[userId]?.name) || 'Unknown',
+        email: data.email || data.userEmail || 
+               (userId && userDetailsMap[userId]?.email) || 'N/A',
+        phone: data.phone || data.userPhone || data.phoneNumber || 
+               (userId && userDetailsMap[userId]?.phone) || 'N/A'
+      };
+      
+      return {
+        id: doc.id,
+        ...data,
+        timestamp: data.timestamp ? data.timestamp.toDate() : null,
+        userDetails
+      };
+    });
+    
+    console.log("Returning processed test results with user details");
+    return resultsWithUserDetails;
   } catch (error) {
     console.error("Error fetching test results:", error);
     throw error;

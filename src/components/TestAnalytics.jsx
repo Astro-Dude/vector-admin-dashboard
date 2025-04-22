@@ -7,10 +7,10 @@ import {
   FiPieChart, 
   FiTrendingUp,
   FiCheckCircle,
-  FiXCircle,
   FiClock,
   FiPrinter
 } from 'react-icons/fi';
+import { XMarkIcon } from '@heroicons/react/24/solid';
 
 // Import chart components from Chart.js
 import {
@@ -133,6 +133,8 @@ const TestAnalytics = () => {
     const headers = [
       'Test Name',
       'Student',
+      'Email',
+      'Mobile',
       'Test ID',
       'Score (%)',
       'Questions Total',
@@ -143,18 +145,27 @@ const TestAnalytics = () => {
       'Time'
     ];
     
-    const csvData = filteredResults.map(result => [
-      result.testName || 'Unknown Test',
-      result.userName || result.studentName || 'Unknown',
-      result.testId || 'N/A',
-      result.percentage ? result.percentage.toFixed(2) : 'N/A',
-      result.questionsTotal || 0,
-      result.questionsAttempted || 0,
-      result.timeSpent || 0,
-      result.resultStatus || 'N/A',
-      result.timestamp ? format(result.timestamp, 'yyyy-MM-dd') : 'N/A',
-      result.timestamp ? format(result.timestamp, 'HH:mm:ss') : 'N/A'
-    ]);
+    const csvData = filteredResults.map(result => {
+      // Extract user information with fallbacks
+      const userName = result.userDetails?.name || result.userName || result.studentName || 'Unknown';
+      const userEmail = result.userDetails?.email || result.userEmail || result.email || 'N/A';
+      const userPhone = result.userDetails?.phone || result.userPhone || result.phone || 'N/A';
+      
+      return [
+        result.testName || 'Unknown Test',
+        userName,
+        userEmail,
+        userPhone,
+        result.testId || 'N/A',
+        result.percentage ? result.percentage.toFixed(2) : 'N/A',
+        result.questionsTotal || 0,
+        result.questionsAttempted || 0,
+        result.timeSpent || 0,
+        result.resultStatus || 'N/A',
+        result.timestamp ? format(result.timestamp, 'yyyy-MM-dd') : 'N/A',
+        result.timestamp ? format(result.timestamp, 'HH:mm:ss') : 'N/A'
+      ];
+    });
     
     const csvContent = [
       headers.join(','),
@@ -175,6 +186,15 @@ const TestAnalytics = () => {
   // Handle print test results
   const handlePrintResults = () => {
     if (!selectedTest) return;
+    
+    console.log("Printing results for test:", selectedTest);
+    
+    // Extract user information with fallbacks
+    const userName = selectedTest.userDetails?.name || selectedTest.userName || selectedTest.studentName || 'Unknown';
+    const userEmail = selectedTest.userDetails?.email || selectedTest.userEmail || selectedTest.email || 'N/A';
+    const userPhone = selectedTest.userDetails?.phone || selectedTest.userPhone || selectedTest.phone || 'N/A';
+    
+    console.log("User info for print:", { userName, userEmail, userPhone });
     
     const printWindow = window.open('', '_blank');
     
@@ -215,7 +235,7 @@ const TestAnalytics = () => {
           <h2>${selectedTest.testName || 'Unnamed Test'}</h2>
           <div class="info-row">
             <span class="label">Student:</span>
-            <span>${selectedTest.userName || selectedTest.studentName || 'Unknown'}</span>
+            <span>${userName}</span>
           </div>
           <div class="info-row">
             <span class="label">Date Taken:</span>
@@ -224,7 +244,7 @@ const TestAnalytics = () => {
           <div class="info-row">
             <span class="label">Score:</span>
             <span>${selectedTest.percentage !== undefined ? `${selectedTest.percentage.toFixed(2)}%` : 'N/A'} 
-            (${selectedTest.questionsCorrect || 0}/{selectedTest.questionsTotal || 0} correct)</span>
+            (${selectedTest.questionsCorrect || 0}/${selectedTest.questionsTotal || 0} correct)</span>
           </div>
           <div class="info-row">
             <span class="label">Status:</span>
@@ -296,6 +316,95 @@ const TestAnalytics = () => {
       avgDuration
     };
   }, [filteredResults]);
+
+  // Render the test detail modal if a test is selected
+  const renderTestDetailModal = () => {
+    if (!selectedTest) return null;
+
+    console.log("Rendering detail modal for test:", selectedTest);
+    
+    // Extract user information with fallbacks
+    const userName = selectedTest.userDetails?.name || selectedTest.userName || selectedTest.studentName || 'Unknown';
+    const userEmail = selectedTest.userDetails?.email || selectedTest.userEmail || selectedTest.email || 'N/A';
+    const userPhone = selectedTest.userDetails?.phone || selectedTest.userPhone || selectedTest.phone || 'N/A';
+    
+    console.log("User info for detail modal:", { userName, userEmail, userPhone });
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">{selectedTest.testName} - Details</h2>
+            <button
+              className="p-1 rounded-full hover:bg-gray-200 transition"
+              onClick={() => setSelectedTest(null)}
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="bg-gray-50 p-3 rounded-md">
+              <h3 className="text-sm font-medium text-gray-500">Test Information</h3>
+              <p className="text-gray-800">{selectedTest.testName}</p>
+              <p className="text-sm text-gray-600">{format(new Date(selectedTest.timestamp), 'PPP')}</p>
+            </div>
+            
+            <div className="bg-gray-50 p-3 rounded-md">
+              <h3 className="text-sm font-medium text-gray-500">Student Information</h3>
+              <p className="text-gray-800">{userName}</p>
+              <p className="text-sm text-gray-600">{userEmail}</p>
+              <p className="text-sm text-gray-600">{userPhone}</p>
+            </div>
+            
+            <div className="bg-gray-50 p-3 rounded-md">
+              <h3 className="text-sm font-medium text-gray-500">Score</h3>
+              <p className="text-2xl font-bold text-blue-600">{selectedTest.percentage ? `${selectedTest.percentage.toFixed(2)}%` : 'N/A'}</p>
+            </div>
+            
+            <div className="bg-gray-50 p-3 rounded-md">
+              <h3 className="text-sm font-medium text-gray-500">Status</h3>
+              <p className={`text-lg font-semibold ${selectedTest.resultStatus === 'pass' || selectedTest.resultStatus === 'passed' ? 'text-green-600' : 'text-red-600'}`}>
+                {selectedTest.resultStatus === 'pass' || selectedTest.resultStatus === 'passed' ? 'Passed' : 'Failed'}
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 p-3 rounded-md">
+              <h3 className="text-sm font-medium text-gray-500">Duration</h3>
+              <p className="text-gray-800">{selectedTest.timeSpent ? `${Math.floor(selectedTest.timeSpent / 60)}m ${selectedTest.timeSpent % 60}s` : 'N/A'}</p>
+            </div>
+          </div>
+          
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-2">Question Analysis</h3>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              {selectedTest.answers && selectedTest.answers.length > 0 ? (
+                selectedTest.answers.map((answer, index) => (
+                  <div key={index} className={`mb-4 p-3 rounded-md ${answer.isCorrect ? 'bg-green-50 border-l-4 border-green-500' : 'bg-red-50 border-l-4 border-red-500'}`}>
+                    <div className="flex justify-between">
+                      <h4 className="font-medium">Question {index + 1}</h4>
+                      <span className={`px-2 py-1 rounded-full text-xs ${answer.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {answer.isCorrect ? 'Correct' : 'Incorrect'}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-gray-700">{answer.question || 'Question text unavailable'}</p>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-600">Your answer: <span className="font-medium">{answer.userAnswer || 'No answer'}</span></p>
+                      {!answer.isCorrect && (
+                        <p className="text-sm text-gray-600">Correct answer: <span className="font-medium">{answer.correctAnswer}</span></p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-600">No question details available</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -449,6 +558,18 @@ const TestAnalytics = () => {
                               scope="col"
                               className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
                             >
+                              Email
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
+                              Mobile
+                            </th>
+                            <th
+                              scope="col"
+                              className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
                               Date
                             </th>
                             <th
@@ -473,43 +594,59 @@ const TestAnalytics = () => {
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
                           {filteredResults.length > 0 ? (
-                            filteredResults.map((result, index) => (
-                              <tr 
-                                key={index} 
-                                className={`${index % 2 === 0 ? undefined : 'bg-gray-50'} hover:bg-gray-100 cursor-pointer`}
-                                onClick={() => setSelectedTest(result)}
-                              >
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                  {result.testName || 'Unnamed Test'}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                  {result.userName || result.studentName || 'Unknown'}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                  {result.timestamp ? new Date(result.timestamp).toLocaleDateString() : 'N/A'}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                  {result.percentage ? `${result.percentage.toFixed(2)}%` : 'N/A'}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                  {result.timeSpent ? `${Math.floor(result.timeSpent / 60)}m ${result.timeSpent % 60}s` : 'N/A'}
-                                </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                  <span
-                                    className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                                      result.resultStatus === 'pass' || result.resultStatus === 'passed'
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-red-100 text-red-800'
-                                    }`}
-                                  >
-                                    {result.resultStatus === 'pass' || result.resultStatus === 'passed' ? 'Passed' : 'Failed'}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))
+                            filteredResults.map((result, index) => {
+                              console.log(`Rendering result ${index}:`, result);
+                              // Extract user information with fallbacks
+                              const userName = result.userDetails?.name || result.userName || result.studentName || 'Unknown';
+                              const userEmail = result.userDetails?.email || result.userEmail || result.email || 'N/A';
+                              const userPhone = result.userDetails?.phone || result.userPhone || result.phone || 'N/A';
+                              
+                              console.log(`User info for result ${index}:`, { userName, userEmail, userPhone });
+                              
+                              return (
+                                <tr 
+                                  key={index} 
+                                  className={`${index % 2 === 0 ? undefined : 'bg-gray-50'} hover:bg-gray-100 cursor-pointer`}
+                                  onClick={() => setSelectedTest(result)}
+                                >
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {result.testName || 'Unnamed Test'}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {userName}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {userEmail}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {userPhone}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {result.timestamp ? new Date(result.timestamp).toLocaleDateString() : 'N/A'}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {result.percentage ? `${result.percentage.toFixed(2)}%` : 'N/A'}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {result.timeSpent ? `${Math.floor(result.timeSpent / 60)}m ${result.timeSpent % 60}s` : 'N/A'}
+                                  </td>
+                                  <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                    <span
+                                      className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                                        result.resultStatus === 'pass' || result.resultStatus === 'passed'
+                                          ? 'bg-green-100 text-green-800'
+                                          : 'bg-red-100 text-red-800'
+                                      }`}
+                                    >
+                                      {result.resultStatus === 'pass' || result.resultStatus === 'passed' ? 'Passed' : 'Failed'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })
                           ) : (
                             <tr>
-                              <td colSpan="6" className="px-3 py-4 text-sm text-gray-500 text-center">
+                              <td colSpan="8" className="px-3 py-4 text-sm text-gray-500 text-center">
                                 No test results found
                               </td>
                             </tr>
@@ -525,90 +662,8 @@ const TestAnalytics = () => {
         </>
       )}
 
-      {/* Test Detail Modal */}
-      {selectedTest && (
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-              &#8203;
-            </span>
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900">Test Details</h3>
-                    <div className="mt-4">
-                      <p className="text-sm text-gray-500 mb-2">
-                        <span className="font-medium">Test Name:</span> {selectedTest.testName || 'Unnamed Test'}
-                      </p>
-                      <p className="text-sm text-gray-500 mb-2">
-                        <span className="font-medium">Student:</span> {selectedTest.userName || selectedTest.studentName || 'Unknown'}
-                      </p>
-                      <p className="text-sm text-gray-500 mb-2">
-                        <span className="font-medium">Date:</span> {selectedTest.timestamp ? new Date(selectedTest.timestamp).toLocaleString() : 'N/A'}
-                      </p>
-                      <p className="text-sm text-gray-500 mb-2">
-                        <span className="font-medium">Score:</span> {selectedTest.percentage !== undefined ? `${selectedTest.percentage.toFixed(2)}%` : 'N/A'} 
-                        ({selectedTest.questionsCorrect || 0}/{selectedTest.questionsTotal || 0} correct)
-                      </p>
-                      <p className="text-sm text-gray-500 mb-2">
-                        <span className="font-medium">Status:</span> <span className={selectedTest.resultStatus === 'pass' || selectedTest.resultStatus === 'passed' ? 'text-green-600' : 'text-red-600'}>
-                          {selectedTest.resultStatus === 'pass' || selectedTest.resultStatus === 'passed' ? 'Passed' : 'Failed'}
-                        </span>
-                      </p>
-                      <p className="text-sm text-gray-500 mb-2">
-                        <span className="font-medium">Duration:</span> {selectedTest.timeSpent ? `${Math.floor(selectedTest.timeSpent / 60)}m ${selectedTest.timeSpent % 60}s` : 'N/A'}
-                      </p>
-                      {selectedTest.answers && (
-                        <div className="mt-4">
-                          <h4 className="text-md font-medium text-gray-800 mb-2">Question Analysis</h4>
-                          <div className="overflow-y-auto max-h-60">
-                            {Object.entries(selectedTest.answers).map(([questionId, answer], index) => (
-                              <div key={questionId} className={`p-2 mb-2 rounded ${answer.correct ? 'bg-green-50' : 'bg-red-50'}`}>
-                                <p className="text-sm font-medium">
-                                  Question {index + 1}: <span className={answer.correct ? 'text-green-700' : 'text-red-700'}>{answer.correct ? 'Correct' : 'Incorrect'}</span>
-                                </p>
-                                {answer.questionText && (
-                                  <p className="text-sm mt-1 text-gray-700">{answer.questionText}</p>
-                                )}
-                                {answer.userAnswer && (
-                                  <p className="text-sm mt-1">Your answer: {answer.userAnswer}</p>
-                                )}
-                                {!answer.correct && answer.correctAnswer && (
-                                  <p className="text-sm mt-1 text-green-600">Correct answer: {answer.correctAnswer}</p>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={() => setSelectedTest(null)}
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={handlePrintResults}
-                >
-                  <FiPrinter className="mr-2" /> Print Results
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Test detail modal */}
+      {renderTestDetailModal()}
     </div>
   );
 };
