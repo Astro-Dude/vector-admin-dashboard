@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiUsers, FiLogOut, FiMenu, FiX, FiSettings } from 'react-icons/fi';
+import { FiUsers, FiLogOut, FiMenu, FiX, FiSettings, FiBarChart2 } from 'react-icons/fi';
 
 const DashboardLayout = () => {
   const { currentUser, logout } = useAuth();
@@ -21,6 +21,7 @@ const DashboardLayout = () => {
 
   const navItems = [
     { icon: FiUsers, text: 'Interview Bookings', path: '/dashboard/interviews' },
+    { icon: FiBarChart2, text: 'Test Analytics', path: '/dashboard/test-analytics' },
     { icon: FiSettings, text: 'Interview Settings', path: '/dashboard/interview-settings' }
   ];
 

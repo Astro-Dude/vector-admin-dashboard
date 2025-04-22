@@ -178,4 +178,121 @@ export const fetchRevenueMetrics = async (startDate, endDate) => {
     console.error("Error fetching revenue metrics:", error);
     throw error;
   }
+};
+
+// Test analytics functions
+export const fetchTestResults = async (filters = {}) => {
+  try {
+    // First check if the user is authenticated
+    if (!auth.currentUser) {
+      throw new Error("User not authenticated");
+    }
+    
+    // Start with base query
+    let constraints = [
+      orderBy('timestamp', 'desc')
+    ];
+    
+    // Apply filters if provided
+    if (filters.testId) {
+      constraints.push(where('testId', '==', filters.testId));
+    }
+    
+    if (filters.startDate) {
+      const startTimestamp = Timestamp.fromDate(new Date(filters.startDate));
+      constraints.push(where('timestamp', '>=', startTimestamp));
+    }
+    
+    if (filters.endDate) {
+      const endTimestamp = Timestamp.fromDate(new Date(filters.endDate));
+      constraints.push(where('timestamp', '<=', endTimestamp));
+    }
+    
+    if (filters.minScore) {
+      constraints.push(where('percentage', '>=', filters.minScore));
+    }
+    
+    if (filters.maxScore) {
+      constraints.push(where('percentage', '<=', filters.maxScore));
+    }
+    
+    if (filters.resultStatus) {
+      constraints.push(where('resultStatus', '==', filters.resultStatus));
+    }
+    
+    const testResultsQuery = query(
+      collection(db, 'testResults'),
+      ...constraints
+    );
+    
+    const querySnapshot = await getDocs(testResultsQuery);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      // Convert Firestore timestamp to JS Date
+      timestamp: doc.data().timestamp ? doc.data().timestamp.toDate() : null
+    }));
+  } catch (error) {
+    console.error("Error fetching test results:", error);
+    throw error;
+  }
+};
+
+// Test category analytics
+export const fetchTestCategoryPerformance = async () => {
+  try {
+    // First check if the user is authenticated
+    if (!auth.currentUser) {
+      throw new Error("User not authenticated");
+    }
+    
+    const testResults = await fetchTestResults();
+    
+    // Group by test category
+    const categoryMap = {};
+    
+    testResults.forEach(result => {
+      const testId = result.testId || 'unknown';
+      
+      if (!categoryMap[testId]) {
+        categoryMap[testId] = {
+          testId,
+          testName: result.testName || 'Unknown Test',
+          attempts: 0,
+          totalScore: 0,
+          avgScore: 0,
+          highestScore: 0,
+          lowestScore: 100,
+          totalTime: 0,
+          avgTime: 0,
+          passCount: 0,
+          failCount: 0
+        };
+      }
+      
+      const category = categoryMap[testId];
+      category.attempts++;
+      category.totalScore += result.percentage || 0;
+      category.highestScore = Math.max(category.highestScore, result.percentage || 0);
+      category.lowestScore = Math.min(category.lowestScore, result.percentage || 0);
+      category.totalTime += result.timeSpent || 0;
+      
+      if (result.resultStatus === 'pass') {
+        category.passCount++;
+      } else {
+        category.failCount++;
+      }
+    });
+    
+    // Calculate averages
+    Object.values(categoryMap).forEach(category => {
+      category.avgScore = category.attempts > 0 ? category.totalScore / category.attempts : 0;
+      category.avgTime = category.attempts > 0 ? category.totalTime / category.attempts : 0;
+    });
+    
+    return Object.values(categoryMap);
+  } catch (error) {
+    console.error("Error fetching test category performance:", error);
+    throw error;
+  }
 }; 

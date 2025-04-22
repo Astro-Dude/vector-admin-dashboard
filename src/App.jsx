@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import Login from './components/Login';
 import InterviewBookings from './components/InterviewBookings';
 import InterviewSettings from './components/InterviewSettings';
+import TestAnalytics from './components/TestAnalytics';
 import DashboardLayout from './components/DashboardLayout';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Navigate to="/dashboard/interviews" replace />} />
             <Route path="interviews" element={<InterviewBookings />} />
+            <Route path="test-analytics" element={<TestAnalytics />} />
             <Route path="interview-settings" element={<InterviewSettings />} />
           </Route>
           
