@@ -1,8 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import PurchaseList from './components/PurchaseList';
 import InterviewBookings from './components/InterviewBookings';
 import InterviewSettings from './components/InterviewSettings';
 import DashboardLayout from './components/DashboardLayout';
@@ -14,19 +12,18 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           
-          {/* Dashboard routes with layout */}
+          {/* Admin panel routes with layout */}
           <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="tests" element={<PurchaseList />} />
+            <Route index element={<Navigate to="/dashboard/interviews" replace />} />
             <Route path="interviews" element={<InterviewBookings />} />
             <Route path="interview-settings" element={<InterviewSettings />} />
           </Route>
           
-          {/* Redirect root to dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* Redirect root to interviews */}
+          <Route path="/" element={<Navigate to="/dashboard/interviews" replace />} />
           
           {/* Catch all other routes */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard/interviews" replace />} />
         </Routes>
       </AuthProvider>
     </Router>
